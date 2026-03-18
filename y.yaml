@@ -1,0 +1,54 @@
+parameters:
+  - name: appName
+    type: string
+  - name: environment
+    type: string
+    values:
+      - dev
+      - qa
+      - uat
+      - prod
+  - name: imageTag
+    type: string
+
+steps:
+  - checkout: git://OCP/platform-gitops
+    persistCredentials: true
+
+  - pwsh: |
+      $appName = '${{ parameters.appName }}'
+      $environment = '${{ parameters.environment }}'
+      $imageTag = '${{ parameters.imageTag }}'
+
+      $envFileMap = @{
+        'dev'  = 'argocd-apps/values/nonprod-dev.yaml'
+        'qa'   = 'argocd-apps/values/nonprod-qa.yaml'
+        'uat'  = 'argocd-apps/values/nonprod-uat.yaml'
+        'prod' = 'argocd-apps/values/prod.yaml'
+      }
+      $envFile = $envFileMap[$environment]
+
+      git config user.email "pipeline@mfs.com"
+      git config user.name "Azure Pipeline Agent"
+      Write-Host "Updating $envFile : $appName -> $imageTag"
+      yq eval ".overrides.`"$appName`".imageTag = `"$imageTag`"" -i $envFile
+
+      git add .
+      git commit -m "deploy: $appName $imageTag -> $environment"
+
+      # Retry push in case of concurrent updates from other pipelines
+      $maxRetries = 3
+      for ($i = 1; $i -le $maxRetries; $i++) {
+        git push
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "##[section]Successfully pushed gitops update"
+          exit 0
+        }
+        Write-Host "##[warning]Push failed (attempt $i/$maxRetries), pulling and retrying..."
+        git pull --rebase
+      }
+
+      Write-Host "##[error]Failed to push after $maxRetries attempts"
+      exit 1
+    displayName: 'Update GitOps for ${{ parameters.appName }} in ${{ parameters.environment }}'
+    workingDirectory: $(Build.SourcesDirectory)
