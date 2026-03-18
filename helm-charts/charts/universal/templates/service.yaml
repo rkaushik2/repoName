@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "universal.name" . }}
+  labels:
+    {{- include "universal.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ include "universal.port" . }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "universal.selectorLabels" . | nindent 4 }}

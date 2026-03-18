@@ -1,0 +1,21 @@
+# =============================================================================
+# PROD Environment Overrides
+# =============================================================================
+environment: prod
+
+defaults:
+  replicas: 3
+  imageTag: latest       # Pipeline should always set a pinned tag, never deploy 'latest' to prod
+
+# Per-app overrides for production
+# overrides:
+#   customer-api:
+#     imageTag: "v1.2.3"
+#     replicas: 4
+#     resources:
+#       requests:
+#         memory: 1Gi
+#         cpu: 1000m
+#       limits:
+#         memory: 2Gi
+#         cpu: 2000m

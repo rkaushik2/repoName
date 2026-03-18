@@ -1,0 +1,111 @@
+# =============================================================================
+# Universal Chart - Default Values
+# =============================================================================
+# Most of these are set by the parent argocd-apps chart.
+# Developers should rarely need to touch this file.
+# =============================================================================
+
+# --- App Identity (set by parent chart) ---
+appName: ""
+projectName: ""         # Azure DevOps project name (used for namespace)
+technology: ""          # node | dotnet | java | python
+environment: ""
+
+# --- Image (set by pipeline via parent chart) ---
+imageRepo: ""
+imageTag: "latest"
+imagePullSecretName: acr-pull-secret
+
+# --- Scaling ---
+replicas: 2
+
+# --- Networking ---
+port: null              # If null, resolved from techDefaults below
+
+# --- Route ---
+route:
+  enabled: true
+  tlsTermination: edge
+  insecureEdgeTerminationPolicy: Redirect
+  # host: ""            # Leave empty for OpenShift auto-generated hostname
+
+# --- Health Checks ---
+healthCheck:
+  path: null            # If null, resolved from techDefaults below
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+# --- Resources ---
+resources: null         # If null, resolved from techDefaults below
+# resources:
+#   requests:
+#     memory: 256Mi
+#     cpu: 250m
+#   limits:
+#     memory: 512Mi
+#     cpu: 500m
+
+# --- Technology Defaults ---
+# Looked up by the _helpers.tpl based on the 'technology' value
+techDefaults:
+  node:
+    port: 3000
+    healthPath: /health
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  dotnet:
+    port: 8080
+    healthPath: /healthz
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 500m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+  java:
+    port: 8080
+    healthPath: /actuator/health
+    resources:
+      requests:
+        memory: 768Mi
+        cpu: 500m
+      limits:
+        memory: 1536Mi
+        cpu: 1000m
+  python:
+    port: 8000
+    healthPath: /health
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+
+# --- Service Account ---
+serviceAccount:
+  create: true
+
+# --- Extra Environment Variables ---
+# extraEnv:
+#   - name: LOG_LEVEL
+#     value: info
+#   - name: MY_SECRET
+#     valueFrom:
+#       secretKeyRef:
+#         name: my-secret
+#         key: password
+
+# --- Extra Labels / Annotations ---
+extraLabels: {}
+extraAnnotations: {}

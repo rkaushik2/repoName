@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "universal.name" . }}
+  labels:
+    {{- include "universal.labels" . | nindent 4 }}
+  {{- if .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml .Values.extraAnnotations | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "universal.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "universal.labels" . | nindent 8 }}
+    spec:
+      {{- if .Values.imagePullSecretName }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "universal.name" . }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.appName }}
+          image: "{{ .Values.imageRepo }}:{{ .Values.imageTag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: {{ include "universal.port" . }}
+              protocol: TCP
+          {{- if .Values.extraEnv }}
+          env:
+            {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ include "universal.healthPath" . }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+            successThreshold: {{ .Values.healthCheck.successThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ include "universal.healthPath" . }}
+              port: http
+            initialDelaySeconds: {{ add .Values.healthCheck.initialDelaySeconds 15 }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+          resources:
+            {{- include "universal.resources" . | nindent 12 }}

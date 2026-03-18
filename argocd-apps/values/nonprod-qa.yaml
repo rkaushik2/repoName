@@ -1,0 +1,12 @@
+# =============================================================================
+# QA Environment Overrides
+# =============================================================================
+environment: qa
+
+defaults:
+  replicas: 2
+  imageTag: latest
+
+# overrides:
+#   customer-api:
+#     imageTag: "qa-abc123"

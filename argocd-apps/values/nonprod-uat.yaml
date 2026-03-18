@@ -1,0 +1,13 @@
+# =============================================================================
+# UAT Environment Overrides
+# =============================================================================
+environment: uat
+
+defaults:
+  replicas: 2
+  imageTag: latest
+
+# overrides:
+#   customer-api:
+#     imageTag: "uat-abc123"
+#     replicas: 2

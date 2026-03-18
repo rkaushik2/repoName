@@ -1,0 +1,5 @@
+apiVersion: v2
+name: universal
+description: Universal Helm chart for deploying applications to OpenShift regardless of technology stack
+version: 1.0.0
+type: application

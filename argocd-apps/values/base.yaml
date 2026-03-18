@@ -1,0 +1,112 @@
+# =============================================================================
+# Platform GitOps - Application Registry
+# =============================================================================
+# This is the single source of truth for all applications deployed via Argo CD.
+#
+# To add a new application, add an entry under 'applications':
+#   - name: <repo-name>          (required) must match the Azure DevOps repo name
+#     projectName: <project>     (required) Azure DevOps project name (used for namespace)
+#     technology: <tech>          (required) node | dotnet | java | python
+#     platform: <platform>       (required) azure | onprem
+#     port: <port>               (optional) only if different from tech default
+#
+# Namespace convention:
+#   nonprod: {projectName}-{environment}    e.g. MyProject-dev
+#   prod:    {projectName}                  e.g. MyProject
+#
+# The Azure pipeline handles imageRepo, imageTag, and all other details.
+# =============================================================================
+
+# --- Repo & Registry Configuration ---
+gitopsRepoUrl: https://dev.azure.com/{org}/{project}/_git/platform-gitops
+targetRevision: main
+acrRegistry: yourorg.azurecr.io
+
+# --- Cluster Endpoints ---
+# Apps are routed to a cluster based on their 'platform' field + environment.
+#   platform: azure  + nonprod env  → azure-np
+#   platform: azure  + prod         → azure-prod
+#   platform: onprem + nonprod env  → np
+#   platform: onprem + prod         → prod
+clusters:
+  azure-np: https://api.azure-np.example.com:6443
+  azure-prod: https://api.azure-prod.example.com:6443
+  np: https://api.np.example.com:6443
+  prod: https://api.prod.example.com:6443
+
+# --- Cluster Routing ---
+# Maps platform + environment type to cluster name
+clusterRouting:
+  azure:
+    nonprod: azure-np
+    prod: azure-prod
+  onprem:
+    nonprod: np
+    prod: prod
+
+# --- Technology Defaults ---
+# These are looked up automatically based on the 'technology' field.
+# Developers do NOT need to set these unless overriding.
+techDefaults:
+  node:
+    port: 3000
+    healthPath: /health
+    memory: 256Mi
+    cpu: 250m
+  dotnet:
+    port: 8080
+    healthPath: /healthz
+    memory: 512Mi
+    cpu: 500m
+  java:
+    port: 8080
+    healthPath: /actuator/health
+    memory: 768Mi
+    cpu: 500m
+  python:
+    port: 8000
+    healthPath: /health
+    memory: 256Mi
+    cpu: 250m
+
+# --- Global Defaults ---
+defaults:
+  imageTag: latest
+  replicas: 2
+
+# --- ACR Pull Secret ---
+# Name of the imagePullSecret that must exist in each namespace.
+# Create this secret in each cluster or use OpenShift's global pull secret.
+imagePullSecretName: acr-pull-secret
+
+# =============================================================================
+# APPLICATION REGISTRY
+# =============================================================================
+applications:
+  # --- Example Applications (replace with your real apps) ---
+
+  - name: customer-api
+    projectName: CustomerPortal
+    technology: dotnet
+    platform: azure
+
+  - name: payment-service
+    projectName: Payments
+    technology: java
+    platform: onprem
+
+  - name: web-portal
+    projectName: CustomerPortal
+    technology: node
+    platform: azure
+
+  - name: notification-service
+    projectName: Notifications
+    technology: python
+    platform: azure
+    port: 4000                # Non-standard port override
+
+  # - name: your-next-app
+  #   projectName: MyProject
+  #   technology: dotnet
+  #   platform: azure

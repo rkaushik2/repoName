@@ -1,0 +1,66 @@
+{{- $root := . -}}
+{{- $isProd := eq $root.Values.environment "prod" -}}
+{{- $envType := ternary "prod" "nonprod" $isProd -}}
+{{- range .Values.applications }}
+{{- $techDefaults := index $root.Values.techDefaults .technology }}
+{{- $override := dict }}
+{{- if $root.Values.overrides }}
+{{- $override = index $root.Values.overrides .name | default dict }}
+{{- end }}
+{{- $clusterName := index (index $root.Values.clusterRouting .platform) $envType }}
+{{- $namespace := ternary .projectName (printf "%s-%s" .projectName $root.Values.environment) $isProd }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}-{{ $root.Values.environment }}
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/managed-by: argocd-apps
+    platform.io/technology: {{ .technology }}
+    platform.io/environment: {{ $root.Values.environment }}
+    platform.io/platform: {{ .platform }}
+    platform.io/project: {{ .projectName }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ $root.Values.argoProject | default "default" }}
+  source:
+    repoURL: {{ $root.Values.gitopsRepoUrl }}
+    targetRevision: {{ $root.Values.targetRevision | default "main" }}
+    path: helm-charts/charts/universal
+    helm:
+      values: |
+        appName: {{ .name }}
+        projectName: {{ .projectName }}
+        technology: {{ .technology }}
+        environment: {{ $root.Values.environment }}
+        port: {{ .port | default $techDefaults.port }}
+        imageRepo: {{ $root.Values.acrRegistry }}/{{ .name }}
+        imageTag: {{ $override.imageTag | default $root.Values.defaults.imageTag | default "latest" | quote }}
+        replicas: {{ $override.replicas | default $root.Values.defaults.replicas | default 2 }}
+        {{- if $override.resources }}
+        resources:
+          {{- $override.resources | toYaml | nindent 10 }}
+        {{- end }}
+        {{- if $override.env }}
+        extraEnv:
+          {{- $override.env | toYaml | nindent 10 }}
+        {{- end }}
+  destination:
+    server: {{ index $root.Values.clusters $clusterName }}
+    namespace: {{ $override.namespace | default $namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+{{- end }}

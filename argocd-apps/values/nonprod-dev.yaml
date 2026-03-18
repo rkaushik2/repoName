@@ -1,0 +1,18 @@
+# =============================================================================
+# DEV Environment Overrides
+# =============================================================================
+environment: dev
+
+defaults:
+  replicas: 1
+  imageTag: latest
+
+# Per-app overrides (optional)
+# overrides:
+#   customer-api:
+#     replicas: 1
+#     imageTag: "dev-abc123"
+#     namespace: customer-api-custom-ns
+#     env:
+#       - name: LOG_LEVEL
+#         value: debug
